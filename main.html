@@ -37,6 +37,157 @@
   const stopButton = document.querySelector('#stop');
 
   //Your code goes here
+
+	
+const msg = new SpeechSynthesisUtterance();
+
+let voices = [];
+
+const voicesDropdown = document.querySelector('[name="voice"]');
+const options = document.querySelectorAll('[type="range"], [name="text"]');
+const speakButton = document.querySelector('#speak');
+const stopButton = document.querySelector('#stop');
+
+const textInput = document.querySelector('[name="text"]');
+const rateInput = document.querySelector('[name="rate"]');
+const pitchInput = document.querySelector('[name="pitch"]');
+
+let speaking = false;
+
+// Load available voices
+function populateVoices() {
+    voices = window.speechSynthesis.getVoices();
+
+    const selectedVoice = voicesDropdown.value;
+
+    voicesDropdown.innerHTML = '';
+
+    if (voices.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No voices available';
+        voicesDropdown.appendChild(option);
+        return;
+    }
+
+    voices.forEach((voice, index) => {
+        const option = document.createElement('option');
+
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+
+        voicesDropdown.appendChild(option);
+    });
+
+    const previousVoiceIndex = voices.findIndex(
+        voice => `${voice.name} (${voice.lang})` === selectedVoice
+    );
+
+    if (previousVoiceIndex !== -1) {
+        voicesDropdown.value = previousVoiceIndex;
+    } else {
+        const defaultVoiceIndex = voices.findIndex(voice =>
+            voice.lang === 'en-IN'
+        );
+
+        voicesDropdown.value =
+            defaultVoiceIndex !== -1 ? defaultVoiceIndex : 0;
+    }
+}
+
+// Set selected voice, rate and pitch
+function setVoice() {
+    if (voices.length === 0) {
+        return;
+    }
+
+    const selectedIndex = Number(voicesDropdown.value);
+    msg.voice = voices[selectedIndex] || voices[0];
+    msg.rate = Number(rateInput.value);
+    msg.pitch = Number(pitchInput.value);
+}
+
+// Speak entered text
+function speak() {
+    const text = textInput.value.trim();
+
+    if (!text) {
+        alert('Please enter some text to speak.');
+        return;
+    }
+
+    if (voices.length === 0) {
+        populateVoices();
+
+        if (voices.length === 0) {
+            alert('No voices available. Please try again.');
+            return;
+        }
+    }
+
+    window.speechSynthesis.cancel();
+
+    msg.text = text;
+    setVoice();
+
+    speaking = true;
+    window.speechSynthesis.speak(msg);
+}
+
+// Stop speech immediately
+function stop() {
+    window.speechSynthesis.cancel();
+    speaking = false;
+}
+
+// Restart speech with updated settings
+function restartSpeech() {
+    if (speaking) {
+        speak();
+    }
+}
+
+// Voice dropdown
+voicesDropdown.addEventListener('change', restartSpeech);
+
+// Rate and pitch controls
+rateInput.addEventListener('input', function () {
+    msg.rate = Number(this.value);
+    restartSpeech();
+});
+
+pitchInput.addEventListener('input', function () {
+    msg.pitch = Number(this.value);
+    restartSpeech();
+});
+
+// Update text while typing
+textInput.addEventListener('input', function () {
+    if (speaking) {
+        stop();
+    }
+});
+
+// Buttons
+speakButton.addEventListener('click', speak);
+stopButton.addEventListener('click', stop);
+
+// Load voices on page load and when browser voices become available
+populateVoices();
+window.speechSynthesis.addEventListener(
+    'voiceschanged',
+    populateVoices
+);
+
+// Handle speech completion
+msg.addEventListener('end', function () {
+    speaking = false;
+});
+
+msg.addEventListener('error', function () {
+    speaking = false;
+});
+
 </script>
 
 </body>
